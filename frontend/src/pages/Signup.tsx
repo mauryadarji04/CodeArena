@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Github, Mail, Eye, EyeOff, UserPlus } from 'lucide-react'
+import { handleGoogleLogin, handleGitHubLogin } from '@/lib/oauth'
 import axios from 'axios'
 
 export default function Signup() {
@@ -61,11 +62,11 @@ export default function Signup() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
-            <Button variant="outline">
+            <Button variant="outline" onClick={handleGoogleLogin}>
               <Mail className="mr-2 h-4 w-4" />
               Google
             </Button>
-            <Button variant="outline">
+            <Button variant="outline" onClick={handleGitHubLogin}>
               <Github className="mr-2 h-4 w-4" />
               GitHub
             </Button>

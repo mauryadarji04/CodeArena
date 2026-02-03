@@ -5,6 +5,7 @@ import Signup from './pages/Signup'
 import ForgotPassword from './pages/ForgotPassword'
 import Dashboard from './pages/Dashboard'
 import Profile from './pages/Profile'
+import OAuthSuccess from './pages/OAuthSuccess'
 import './index.css'
 
 function App() {
@@ -16,6 +17,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/auth/success" element={<OAuthSuccess />} />
           <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
           <Route path="/profile" element={<Layout><Profile /></Layout>} />
         </Routes>

@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
-import { transporter } from '../config/email.js';
+import { getMailer } from '../config/email.js';
 import { successResponse, errorResponse } from '../views/response.js';
 
 const otpStore = new Map();
@@ -106,6 +106,7 @@ export const sendOTP = async (req, res) => {
       `
     };
 
+    const transporter = getMailer();
     await transporter.sendMail(mailOptions);
     return successResponse(res, 'OTP sent successfully');
   } catch (error) {
