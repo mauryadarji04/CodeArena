@@ -4,7 +4,6 @@ import jwt from 'jsonwebtoken';
 
 const router = express.Router();
 
-// Google OAuth routes
 router.get('/google', 
   passport.authenticate('google', { scope: ['profile', 'email'] })
 );
@@ -29,7 +28,7 @@ router.get('/google/callback',
           { expiresIn: '7d' }
         );
         
-        res.redirect(`${process.env.FRONTEND_URL}/dashboard?token=${token}`);
+        res.redirect(`${process.env.FRONTEND_URL}/auth/success?token=${token}`);
       } catch (error) {
         console.error('Token generation error:', error);
         res.redirect(`${process.env.FRONTEND_URL}/login`);
@@ -38,7 +37,6 @@ router.get('/google/callback',
   }
 );
 
-// GitHub OAuth routes
 router.get('/github',
   passport.authenticate('github', { scope: ['user:email'] })
 );
@@ -63,7 +61,7 @@ router.get('/github/callback',
           { expiresIn: '7d' }
         );
         
-        res.redirect(`${process.env.FRONTEND_URL}/dashboard?token=${token}`);
+        res.redirect(`${process.env.FRONTEND_URL}/auth/success?token=${token}`);
       } catch (error) {
         console.error('Token generation error:', error);
         res.redirect(`${process.env.FRONTEND_URL}/login`);

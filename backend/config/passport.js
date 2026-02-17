@@ -35,7 +35,8 @@ const configurePassport = () => {
         await user.save();
         done(null, user);
       } catch (error) {
-        done(null, false);
+        console.error('Google OAuth error:', error);
+        done(error, null);
       }
     }));
   }
@@ -72,7 +73,8 @@ const configurePassport = () => {
         await user.save();
         done(null, user);
       } catch (error) {
-        done(null, false);
+        console.error('GitHub OAuth error:', error);
+        done(error, null);
       }
     }));
   }
