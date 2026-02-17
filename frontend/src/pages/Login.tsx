@@ -24,6 +24,9 @@ export default function Login() {
       const response = await axios.post('http://localhost:3001/api/login', formData)
       if (response.data.success) {
         localStorage.setItem('token', response.data.data.token)
+        localStorage.setItem('userId', response.data.data.user.id)
+        localStorage.setItem('userEmail', response.data.data.user.email)
+        localStorage.setItem('userName', response.data.data.user.name)
         navigate('/dashboard')
       }
     } catch (error: any) {

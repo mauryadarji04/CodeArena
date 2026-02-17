@@ -18,12 +18,28 @@ export const handleGitHubLogin = () => {
   }
 };
 
-export const handleOAuthCallback = () => {
+export const handleOAuthCallback = async () => {
   const urlParams = new URLSearchParams(window.location.search);
   const token = urlParams.get('token');
   
   if (token) {
     localStorage.setItem('token', token);
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/profile`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await response.json();
+      
+      if (data.success) {
+        localStorage.setItem('userId', data.data.user._id);
+        localStorage.setItem('userEmail', data.data.user.email);
+        localStorage.setItem('userName', data.data.user.name);
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+    }
+    
     return token;
   }
   

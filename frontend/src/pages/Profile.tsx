@@ -9,10 +9,14 @@ interface UserData {
   id: string
   name: string
   email: string
+  username?: string
 }
 
 export default function Profile() {
   const [user, setUser] = useState<UserData | null>(null)
+  const [isEditing, setIsEditing] = useState(false)
+  const [username, setUsername] = useState('')
+  const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -30,6 +34,7 @@ export default function Profile() {
 
         if (response.data.success) {
           setUser(response.data.data.user)
+          setUsername(response.data.data.user.username || '')
         }
       } catch (error) {
         console.error('Error fetching profile:', error)
@@ -40,6 +45,34 @@ export default function Profile() {
 
     fetchUserProfile()
   }, [navigate])
+
+  const handleUpdateUsername = async () => {
+    if (!username.trim()) {
+      alert('Username cannot be empty')
+      return
+    }
+    
+    setLoading(true)
+    try {
+      const token = localStorage.getItem('token')
+      const response = await axios.put(
+        'http://localhost:3001/api/profile',
+        { username },
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      
+      if (response.data.success) {
+        setUser(response.data.data.user)
+        localStorage.setItem('userId', response.data.data.user._id)
+        setIsEditing(false)
+        alert('Username updated successfully!')
+      }
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Failed to update username')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
@@ -75,11 +108,31 @@ export default function Profile() {
             </div>
             <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
               <Hash className="w-4 h-4 text-muted-foreground" />
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">User ID</p>
-                <p className="font-mono text-sm">{user?.id || 'Loading...'}</p>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-muted-foreground">Username</p>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    className="w-full bg-background border border-border rounded px-2 py-1 mt-1"
+                    placeholder="Enter username"
+                  />
+                ) : (
+                  <p className="font-semibold">{user?.username || 'Not set'}</p>
+                )}
               </div>
             </div>
+            {isEditing && (
+              <div className="flex gap-2">
+                <Button onClick={handleUpdateUsername} disabled={loading} className="flex-1">
+                  {loading ? 'Saving...' : 'Save'}
+                </Button>
+                <Button onClick={() => { setIsEditing(false); setUsername(user?.username || ''); }} variant="outline" className="flex-1">
+                  Cancel
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -100,9 +153,9 @@ export default function Profile() {
               </div>
               <p className="text-sm text-muted-foreground">Your account is verified and active</p>
             </div>
-            <Button className="w-full" variant="outline">
+            <Button className="w-full" variant="outline" onClick={() => setIsEditing(!isEditing)}>
               <Edit className="w-4 h-4 mr-2" />
-              Edit Profile
+              {isEditing ? 'Cancel Edit' : 'Edit Profile'}
             </Button>
             <Button className="w-full" variant="outline">
               <Shield className="w-4 h-4 mr-2" />

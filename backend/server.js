@@ -6,6 +6,7 @@ import { connectDB } from './config/database.js';
 import authRoutes from './routes/auth.js';
 import oauthRoutes from './routes/oauth.js';
 import problemRoutes from './routes/problems.js';
+import submissionRoutes from './routes/submissions.js';
 import passport, { configurePassport } from './config/passport.js';
 
 dotenv.config();
@@ -32,6 +33,7 @@ connectDB();
 app.use('/api', authRoutes);
 app.use('/api/auth', oauthRoutes);
 app.use('/api', problemRoutes);
+app.use('/api', submissionRoutes);
 
 app.get('/api/test', (req, res) => {
   res.json({ success: true, message: 'Server is running' });

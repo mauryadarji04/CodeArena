@@ -7,20 +7,24 @@ export default function OAuthSuccess() {
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
-    const error = searchParams.get('error');
+    const handleAuth = async () => {
+      const error = searchParams.get('error');
+      
+      if (error) {
+        navigate('/login?error=oauth_failed');
+        return;
+      }
+      
+      const token = await handleOAuthCallback();
+      
+      if (token) {
+        navigate('/dashboard');
+      } else {
+        navigate('/login?error=oauth_failed');
+      }
+    };
     
-    if (error) {
-      navigate('/login?error=oauth_failed');
-      return;
-    }
-    
-    const token = handleOAuthCallback();
-    
-    if (token) {
-      navigate('/dashboard');
-    } else {
-      navigate('/login?error=oauth_failed');
-    }
+    handleAuth();
   }, [navigate, searchParams]);
 
   return (

@@ -80,6 +80,32 @@ export const getProfile = async (req, res) => {
   }
 };
 
+export const updateProfile = async (req, res) => {
+  try {
+    const { username } = req.body;
+    
+    if (!username) {
+      return errorResponse(res, 'Username is required');
+    }
+    
+    const existingUser = await User.findOne({ username, _id: { $ne: req.userId } });
+    if (existingUser) {
+      return errorResponse(res, 'Username already taken');
+    }
+    
+    const user = await User.findByIdAndUpdate(
+      req.userId,
+      { username },
+      { new: true }
+    ).select('-password');
+    
+    return successResponse(res, 'Profile updated', { user });
+  } catch (error) {
+    console.error('Update profile error:', error);
+    return errorResponse(res, 'Server error', 500);
+  }
+};
+
 export const sendOTP = async (req, res) => {
   try {
     const { email } = req.body;

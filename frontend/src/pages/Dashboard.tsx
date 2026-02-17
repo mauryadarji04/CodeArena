@@ -91,9 +91,49 @@ export default function Dashboard() {
     alert('Code submitted!')
   }
 
-  const handleRun = () => {
-    console.log('Running code:', code)
-    alert('Code executed!')
+  const handleRun = async () => {
+    try {
+      const userId = localStorage.getItem('userId')
+      console.log('UserId from localStorage:', userId)
+      console.log('Selected Problem:', selectedProblem)
+      
+      if (!userId) {
+        alert('Please login first!')
+        return
+      }
+      
+      if (!selectedProblem) {
+        alert('No problem selected!')
+        return
+      }
+      
+      const payload = {
+        userId,
+        problemId: selectedProblem._id,
+        code,
+        language
+      }
+      
+      console.log('Sending submission:', payload)
+      
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/submissions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      
+      const data = await response.json()
+      console.log('Submission response:', data)
+      
+      if (data.success) {
+        alert('Code saved and executed!')
+      } else {
+        alert('Failed to save code: ' + data.message)
+      }
+    } catch (err) {
+      console.error('Error saving submission:', err)
+      alert('Error: ' + err)
+    }
   }
 
   if (!selectedProblem) return <div className="flex items-center justify-center h-screen">Loading...</div>
