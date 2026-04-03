@@ -46,6 +46,8 @@ export default function Dashboard() {
   const [code, setCode] = useState(codeTemplates.cpp)
   const [language, setLanguage] = useState('cpp')
   const [showProblems, setShowProblems] = useState(true)
+  const [analysis, setAnalysis] = useState<any>(null)
+  const [isRunning, setIsRunning] = useState(false)
 
   useEffect(() => {
     fetch(`${import.meta.env.VITE_API_URL}/api/problems`)
@@ -116,6 +118,8 @@ export default function Dashboard() {
       
       console.log('Sending submission:', payload)
       
+      setIsRunning(true)
+      setAnalysis(null)
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/submissions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -126,13 +130,15 @@ export default function Dashboard() {
       console.log('Submission response:', data)
       
       if (data.success) {
-        alert('Code saved and executed!')
+        setAnalysis(data.analysis)
       } else {
         alert('Failed to save code: ' + data.message)
       }
     } catch (err) {
       console.error('Error saving submission:', err)
       alert('Error: ' + err)
+    } finally {
+      setIsRunning(false)
     }
   }
 
@@ -243,9 +249,9 @@ export default function Dashboard() {
               </select>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={handleRun}>
+              <Button variant="outline" size="sm" onClick={handleRun} disabled={isRunning}>
                 <Play className="w-4 h-4 mr-2" />
-                Run
+                {isRunning ? 'Running...' : 'Run'}
               </Button>
               <Button size="sm" onClick={handleSubmit}>
                 <Send className="w-4 h-4 mr-2" />
@@ -260,6 +266,16 @@ export default function Dashboard() {
             <CodeEditor code={code} setCode={setCode} language={language} />
           </div>
           
+          {/* Analysis Result */}
+          {analysis && (
+            <div className="border-t border-border bg-muted/30 p-4 max-h-48 overflow-y-auto">
+              <h4 className="font-semibold mb-2 text-sm">ML Analysis Result</h4>
+              <pre className="text-xs bg-background rounded p-3 border border-border overflow-x-auto whitespace-pre-wrap">
+                {JSON.stringify(analysis, null, 2)}
+              </pre>
+            </div>
+          )}
+
           {/* Test Cases Section */}
           <div className="border-t border-border bg-muted/30 p-4 max-h-64 overflow-y-auto">
             <h4 className="font-semibold mb-3 text-sm">Test Cases</h4>
