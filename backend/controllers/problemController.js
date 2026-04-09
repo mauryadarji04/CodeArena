@@ -11,7 +11,7 @@ export const getAllProblems = async (req, res) => {
 
 export const getProblemById = async (req, res) => {
   try {
-    const problem = await Problem.findById(req.params.id);
+    const problem = await Problem.findById(req.params.id).select('-hiddenTestCases');
     if (!problem) return res.status(404).json({ success: false, message: 'Problem not found' });
     res.json({ success: true, problem });
   } catch (error) {

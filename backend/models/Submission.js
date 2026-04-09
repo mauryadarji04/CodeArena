@@ -7,12 +7,23 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const EXTENSIONS = { cpp: '.cpp', python: '.py', javascript: '.js', java: '.java' };
 const SUBMISSIONS_DIR = path.join(__dirname, '..', 'submissions');
 
+const testResultSchema = new mongoose.Schema({
+  input: String,
+  expectedOutput: String,
+  passed: Boolean,
+  isHidden: Boolean
+}, { _id: false });
+
 const submissionSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  problemId: { type: mongoose.Schema.Types.ObjectId, ref: 'Problem', required: true },
-  code: { type: String, required: true },
-  language: { type: String, required: true },
-  filePath: { type: String }
+  userId:      { type: mongoose.Schema.Types.ObjectId, ref: 'User',    required: true },
+  problemId:   { type: mongoose.Schema.Types.ObjectId, ref: 'Problem', required: true },
+  code:        { type: String, required: true },
+  language:    { type: String, required: true },
+  filePath:    { type: String },
+  testResults: [testResultSchema],
+  totalPassed: { type: Number, default: 0 },
+  totalTests:  { type: Number, default: 0 },
+  mlAnalysis:  { type: mongoose.Schema.Types.Mixed }
 }, { timestamps: true });
 
 submissionSchema.pre('save', function (next) {
