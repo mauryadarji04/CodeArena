@@ -23,7 +23,15 @@ const submissionSchema = new mongoose.Schema({
   testResults: [testResultSchema],
   totalPassed: { type: Number, default: 0 },
   totalTests:  { type: Number, default: 0 },
-  mlAnalysis:  { type: mongoose.Schema.Types.Mixed }
+  mlAnalysis:  { type: mongoose.Schema.Types.Mixed },
+  plagiarism: {
+    checked:          { type: Boolean, default: false },
+    score:            { type: Number },
+    verdict:          { type: String, enum: ['clean', 'suspicious', 'flagged'] },
+    detectedSignals:  [{ type: String }],
+    matchedKeywords:  [{ type: String }],
+    checkedAt:        { type: Date }
+  }
 }, { timestamps: true });
 
 submissionSchema.pre('save', function (next) {

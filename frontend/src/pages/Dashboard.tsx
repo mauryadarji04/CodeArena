@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { Play, Send, ChevronRight, Search, X, Loader2, CheckCircle2, XCircle, FlaskConical } from 'lucide-react'
+import { Play, Send, ChevronRight, Search, X, Loader2, CheckCircle2, XCircle, FlaskConical, ShieldAlert, ShieldCheck, ShieldQuestion } from 'lucide-react'
 import CodeEditor from '@/components/CodeEditor'
 
 const codeTemplates: Record<string, string> = {
@@ -27,6 +27,16 @@ interface Problem {
   problemStatement: string
   constraints: string
   sampleTestCases?: TestCase[]
+  hiddenPrompt?: string
+}
+
+// Injects hiddenPrompt as plain text wrapped in zero-width chars — invisible on screen, readable when copied to AI
+function injectHiddenPrompt(text: string, hiddenPrompt: string): string {
+  if (!hiddenPrompt) return text
+  const invisible = '\u200b' + hiddenPrompt + '\u200b'
+  const dotIndex = text.indexOf('. ')
+  const insertAt = dotIndex !== -1 ? dotIndex + 2 : Math.floor(text.length / 2)
+  return text.slice(0, insertAt) + invisible + text.slice(insertAt)
 }
 
 const DIFFICULTY_OPTS = ['All', 'Easy', 'Medium', 'Hard'] as const
@@ -58,7 +68,12 @@ export default function Dashboard() {
   const [language, setLanguage]               = useState('cpp')
   const [showProblems, setShowProblems]       = useState(true)
   const [analysis, setAnalysis]               = useState<any>(null)
+  const [plagiarism, setPlagiarism]           = useState<any>(null)
+  const [lastAction, setLastAction]           = useState<'run' | 'submit' | null>(null)
   const [isRunning, setIsRunning]             = useState(false)
+  const [isSubmitting, setIsSubmitting]       = useState(false)
+  const [runStatus, setRunStatus]             = useState<'idle' | 'passed' | 'failed'>('idle')
+  const [submitWarning, setSubmitWarning]     = useState(false)
   const [search, setSearch]                   = useState('')
   const [diffFilter, setDiffFilter]           = useState('All')
   const [tagFilter, setTagFilter]             = useState('All')
@@ -97,29 +112,68 @@ export default function Dashboard() {
       if (data.success) {
         setSelectedProblem(data.problem)
         setAnalysis(null)
+        setPlagiarism(null)
+        setLastAction(null)
+        setRunStatus('idle')
         setCode(codeTemplates[language])
       }
     } catch (err) { console.error(err) }
   }
 
-  const handleLanguageChange = (lang: string) => { setLanguage(lang); setCode(codeTemplates[lang]) }
+  const handleLanguageChange = (lang: string) => { setLanguage(lang); setCode(codeTemplates[lang]); setRunStatus('idle') }
 
   const handleRun = async () => {
     const userId = localStorage.getItem('userId')
     if (!userId)          { alert('Please login first!'); return }
     if (!selectedProblem) { alert('No problem selected!'); return }
-    setIsRunning(true); setAnalysis(null)
+    setIsRunning(true); setAnalysis(null); setPlagiarism(null); setLastAction('run'); setRunStatus('idle')
     try {
       const res  = await fetch(`${import.meta.env.VITE_API_URL}/api/submissions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, problemId: selectedProblem._id, code, language })
+        body: JSON.stringify({ userId, problemId: selectedProblem._id, code, language, type: 'run' })
       })
       const data = await res.json()
-      if (data.success) setAnalysis(data.analysis)
-      else alert('Failed: ' + data.message)
+      if (data.success) {
+        setAnalysis(data.analysis)
+        const results = data.analysis?.test_results
+        if (Array.isArray(results) && results.length > 0 && results.every((r: any) => r.passed)) {
+          setRunStatus('passed')
+        } else {
+          setRunStatus('failed')
+        }
+      } else {
+        alert('Failed: ' + data.message)
+      }
     } catch (err) { alert('Error: ' + err) }
     finally { setIsRunning(false) }
+  }
+
+  const handleSubmit = async () => {
+    if (runStatus !== 'passed') {
+      setSubmitWarning(true)
+      setTimeout(() => setSubmitWarning(false), 3000)
+      return
+    }
+    const userId = localStorage.getItem('userId')
+    if (!userId)          { alert('Please login first!'); return }
+    if (!selectedProblem) { alert('No problem selected!'); return }
+    setIsSubmitting(true); setAnalysis(null); setPlagiarism(null); setLastAction('submit')
+    try {
+      const res  = await fetch(`${import.meta.env.VITE_API_URL}/api/submissions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, problemId: selectedProblem._id, code, language, type: 'submit' })
+      })
+      const data = await res.json()
+      if (data.success) {
+        setAnalysis({ ...data.analysis, _submitStatus: data.record?.status ?? 'wrong_answer' })
+        setPlagiarism(data.plagiarism ?? null)
+      } else {
+        alert('Submit failed: ' + data.message)
+      }
+    } catch (err) { alert('Error: ' + err) }
+    finally { setIsSubmitting(false) }
   }
 
   const tc = selectedProblem?.sampleTestCases ?? []
@@ -298,7 +352,7 @@ export default function Dashboard() {
           {/* problem statement */}
           <motion.div variants={fadeUp} className="mb-6">
             <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-line">
-              {selectedProblem.problemStatement}
+              {injectHiddenPrompt(selectedProblem.problemStatement, selectedProblem.hiddenPrompt ?? '')}
             </p>
           </motion.div>
 
@@ -378,12 +432,38 @@ export default function Dashboard() {
                 : <><Play className="w-3 h-3 mr-1.5" />Run</>
               }
             </Button>
-            <Button
-              size="sm" onClick={() => alert('Code submitted!')}
-              className="h-7 text-xs px-3 bg-emerald-600 hover:bg-emerald-500 text-white border-0 transition-colors"
-            >
-              <Send className="w-3 h-3 mr-1.5" />Submit
-            </Button>
+            <div className="relative">
+              <Button
+                size="sm" onClick={handleSubmit} disabled={isSubmitting}
+                className={`h-7 text-xs px-3 text-white border-0 transition-colors ${
+                  runStatus === 'passed'
+                    ? 'bg-emerald-600 hover:bg-emerald-500'
+                    : 'bg-zinc-600 hover:bg-zinc-500 opacity-60'
+                }`}
+              >
+                {isSubmitting
+                  ? <><Loader2 className="w-3 h-3 mr-1.5 animate-spin" />Submitting…</>
+                  : <><Send className="w-3 h-3 mr-1.5" />Submit</>
+                }
+              </Button>
+              <AnimatePresence>
+                {submitWarning && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -6, scale: 0.95 }}
+                    transition={{ duration: 0.18 }}
+                    className="absolute right-0 top-9 z-50 w-64 rounded-lg border border-amber-500/40 bg-zinc-900 px-3 py-2.5 shadow-xl"
+                  >
+                    <p className="text-xs text-amber-400 font-medium">
+                      {runStatus === 'idle'
+                        ? '⚠ Run your code first before submitting.'
+                        : '⚠ All test cases must pass before submitting.'}
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
 
@@ -430,31 +510,143 @@ export default function Dashboard() {
           </Tabs>
         </div>
 
-        {/* ── ML Analysis ── */}
-        <AnimatePresence>
-          {analysis && (
+        {/* ── Results Panel ── */}
+        <AnimatePresence mode="wait">
+
+          {/* RUN: show test case results */}
+          {lastAction === 'run' && analysis && (
             <motion.div
-              key="analysis"
+              key="run-results"
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.25 }}
               className="border-t border-border overflow-hidden shrink-0"
             >
-              <div className="bg-muted/20 p-3 max-h-44 overflow-y-auto">
-                <div className="flex items-center gap-2 mb-2">
+              <div className="bg-muted/20 p-3 max-h-52 overflow-y-auto space-y-2">
+
+                {/* test case results */}
+                <div className="flex items-center gap-2">
                   {analysis.error
                     ? <XCircle className="w-3.5 h-3.5 text-rose-400" />
-                    : <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                    : runStatus === 'passed'
+                    ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                    : <XCircle className="w-3.5 h-3.5 text-rose-400" />
                   }
-                  <span className="text-xs font-semibold">ML Analysis</span>
+                  <span className={`text-xs font-semibold ${runStatus === 'passed' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {analysis.error ? 'Error' : runStatus === 'passed' ? 'All Test Cases Passed' : 'Some Test Cases Failed'}
+                  </span>
+                  {!analysis.error && Array.isArray(analysis.test_results) && (
+                    <span className="ml-auto text-xs text-muted-foreground font-mono">
+                      {analysis.test_results.filter((r: any) => r.passed).length}/{analysis.test_results.length} passed
+                    </span>
+                  )}
                 </div>
-                <pre className="text-xs bg-background rounded-md p-2.5 border border-border overflow-x-auto whitespace-pre-wrap text-muted-foreground leading-relaxed">
-                  {JSON.stringify(analysis, null, 2)}
-                </pre>
+
+                {Array.isArray(analysis.test_results) && (
+                  <div className="space-y-1">
+                    {analysis.test_results.map((r: any, i: number) => (
+                      <div key={i} className={`flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-md border ${
+                        r.passed
+                          ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                          : 'bg-rose-500/10 border-rose-500/20 text-rose-400'
+                      }`}>
+                        {r.passed ? <CheckCircle2 className="w-3 h-3 shrink-0" /> : <XCircle className="w-3 h-3 shrink-0" />}
+                        <span>Case {i + 1}: {r.passed ? 'Passed' : 'Failed'}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* complexity */}
+                {analysis.complexity && (
+                  <div className="flex gap-3 text-[10px] text-muted-foreground font-mono pt-1">
+                    <span>Time: {analysis.complexity.time_worst}</span>
+                    <span>Space: {analysis.complexity.space}</span>
+                    {analysis.optimization?.is_optimized !== undefined && (
+                      <span className={analysis.optimization.is_optimized ? 'text-emerald-400' : 'text-amber-400'}>
+                        {analysis.optimization.is_optimized ? 'Optimized' : 'Can be optimized'}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {analysis.error && (
+                  <pre className="text-xs bg-background rounded-md p-2.5 border border-border text-rose-400 whitespace-pre-wrap">
+                    {analysis.error}
+                  </pre>
+                )}
               </div>
             </motion.div>
           )}
+
+          {/* SUBMIT: show verdict + plagiarism */}
+          {lastAction === 'submit' && analysis && (
+            <motion.div
+              key="submit-results"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              className="border-t border-border overflow-hidden shrink-0"
+            >
+              <div className="bg-muted/20 p-3 max-h-52 overflow-y-auto space-y-3">
+
+                {/* verdict row */}
+                <div className={`flex items-center gap-2 px-3 py-2 rounded-md border ${
+                  analysis._submitStatus === 'accepted'
+                    ? 'bg-emerald-500/10 border-emerald-500/30'
+                    : 'bg-rose-500/10 border-rose-500/30'
+                }`}>
+                  {analysis._submitStatus === 'accepted'
+                    ? <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    : <XCircle className="w-4 h-4 text-rose-400" />
+                  }
+                  <span className={`text-sm font-semibold ${
+                    analysis._submitStatus === 'accepted' ? 'text-emerald-400' : 'text-rose-400'
+                  }`}>
+                    {analysis._submitStatus === 'accepted' ? 'Accepted ✓' : 'Wrong Answer'}
+                  </span>
+                </div>
+
+                {/* plagiarism row */}
+                {plagiarism?.checked && (
+                  <div className={`px-3 py-2 rounded-md border space-y-1.5 ${
+                    plagiarism.verdict === 'clean'      ? 'bg-emerald-500/10 border-emerald-500/30'
+                    : plagiarism.verdict === 'suspicious' ? 'bg-amber-500/10 border-amber-500/30'
+                    : 'bg-rose-500/10 border-rose-500/30'
+                  }`}>
+                    <div className="flex items-center gap-2">
+                      {plagiarism.verdict === 'clean'
+                        ? <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                        : plagiarism.verdict === 'suspicious'
+                        ? <ShieldQuestion className="w-3.5 h-3.5 text-amber-400" />
+                        : <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
+                      }
+                      <span className={`text-xs font-semibold ${
+                        plagiarism.verdict === 'clean'       ? 'text-emerald-400'
+                        : plagiarism.verdict === 'suspicious' ? 'text-amber-400'
+                        : 'text-rose-400'
+                      }`}>
+                        Plagiarism: {plagiarism.verdict.charAt(0).toUpperCase() + plagiarism.verdict.slice(1)}
+                      </span>
+                      <span className="ml-auto text-xs text-muted-foreground font-mono">Score: {plagiarism.score ?? '—'}</span>
+                    </div>
+                    {plagiarism.matchedKeywords?.length > 0 && (
+                      <div className="flex gap-1 flex-wrap">
+                        {plagiarism.matchedKeywords.map((kw: string, i: number) => (
+                          <span key={i} className="text-[10px] font-mono bg-rose-500/20 text-rose-300 px-1.5 py-0.5 rounded border border-rose-500/30">
+                            {kw}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+
         </AnimatePresence>
       </div>
     </div>
