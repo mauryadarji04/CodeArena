@@ -21,12 +21,13 @@ export default function Login() {
     e.preventDefault()
     setLoading(true)
     try {
-      const response = await axios.post('http://localhost:3001/api/login', formData)
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/login`, formData)
       if (response.data.success) {
         localStorage.setItem('token', response.data.data.token)
         localStorage.setItem('userId', response.data.data.user.id)
         localStorage.setItem('userEmail', response.data.data.user.email)
         localStorage.setItem('userName', response.data.data.user.name)
+        localStorage.setItem('userRole', response.data.data.user.role)
         navigate('/dashboard')
       }
     } catch (error: any) {

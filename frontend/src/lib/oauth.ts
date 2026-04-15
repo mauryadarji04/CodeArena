@@ -1,8 +1,8 @@
-const API_BASE_URL = 'http://localhost:3001/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 export const handleGoogleLogin = () => {
   try {
-    window.location.href = `${API_BASE_URL}/auth/google`;
+    window.location.href = `${API_BASE_URL}/api/auth/google`;
   } catch (error) {
     console.error('Google OAuth error:', error);
     alert('Failed to initiate Google login');
@@ -11,7 +11,7 @@ export const handleGoogleLogin = () => {
 
 export const handleGitHubLogin = () => {
   try {
-    window.location.href = `${API_BASE_URL}/auth/github`;
+    window.location.href = `${API_BASE_URL}/api/auth/github`;
   } catch (error) {
     console.error('GitHub OAuth error:', error);
     alert('Failed to initiate GitHub login');
@@ -26,7 +26,7 @@ export const handleOAuthCallback = async () => {
     localStorage.setItem('token', token);
     
     try {
-      const response = await fetch(`${API_BASE_URL}/profile`, {
+      const response = await fetch(`${API_BASE_URL}/api/profile`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await response.json();

@@ -13,7 +13,8 @@ export default function Signup() {
     name: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    role: 'user'
   })
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
@@ -31,16 +32,18 @@ export default function Signup() {
     }
     setLoading(true)
     try {
-      const response = await axios.post('http://localhost:3001/api/signup', {
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/signup`, {
         name: formData.name,
         email: formData.email,
-        password: formData.password
+        password: formData.password,
+        role: formData.role
       })
       if (response.data.success) {
         localStorage.setItem('token', response.data.data.token)
         localStorage.setItem('userId', response.data.data.user.id)
         localStorage.setItem('userEmail', response.data.data.user.email)
         localStorage.setItem('userName', response.data.data.user.name)
+        localStorage.setItem('userRole', response.data.data.user.role)
         navigate('/dashboard')
       }
     } catch (error: any) {
@@ -140,6 +143,27 @@ export default function Signup() {
                 onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                 required
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Role</Label>
+              <div className="grid grid-cols-2 gap-3">
+                {(['user', 'admin'] as const).map(r => (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, role: r })}
+                    className={`py-2 rounded-md border text-sm font-medium capitalize transition-colors ${
+                      formData.role === r
+                        ? r === 'admin'
+                          ? 'bg-amber-500/20 border-amber-500/60 text-amber-400'
+                          : 'bg-primary/20 border-primary/60 text-primary'
+                        : 'bg-transparent border-border text-muted-foreground hover:border-muted-foreground/50'
+                    }`}
+                  >
+                    {r === 'admin' ? '🛡️ Admin' : '👤 User'}
+                  </button>
+                ))}
+              </div>
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? 'Creating account...' : 'Create account'}

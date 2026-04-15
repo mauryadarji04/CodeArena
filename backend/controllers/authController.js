@@ -5,8 +5,8 @@ import { successResponse, errorResponse } from '../views/response.js';
 
 const otpStore = new Map();
 
-const generateToken = (userId) => {
-  return jwt.sign({ userId }, process.env.JWT_SECRET || 'fallback-secret', { expiresIn: '7d' });
+const generateToken = (userId, role) => {
+  return jwt.sign({ userId, role }, process.env.JWT_SECRET || 'fallback-secret', { expiresIn: '7d' });
 };
 
 const generateOTP = () => {
@@ -15,7 +15,7 @@ const generateOTP = () => {
 
 export const signup = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role } = req.body;
     
     if (!name || !email || !password) {
       return errorResponse(res, 'All fields are required');
@@ -26,14 +26,14 @@ export const signup = async (req, res) => {
       return errorResponse(res, 'User already exists');
     }
 
-    const user = new User({ name, email, password });
+    const user = new User({ name, email, password, role: role === 'admin' ? 'admin' : 'user' });
     await user.save();
 
-    const token = generateToken(user._id);
+    const token = generateToken(user._id, user.role);
 
     return successResponse(res, 'User created successfully', {
       token,
-      user: { id: user._id, name: user.name, email: user.email }
+      user: { id: user._id, name: user.name, email: user.email, role: user.role }
     }, 201);
   } catch (error) {
     console.error('Signup error:', error);
@@ -55,11 +55,11 @@ export const login = async (req, res) => {
       return errorResponse(res, 'Invalid credentials');
     }
 
-    const token = generateToken(user._id);
+    const token = generateToken(user._id, user.role);
 
     return successResponse(res, 'Login successful', {
       token,
-      user: { id: user._id, name: user.name, email: user.email }
+      user: { id: user._id, name: user.name, email: user.email, role: user.role }
     });
   } catch (error) {
     console.error('Login error:', error);

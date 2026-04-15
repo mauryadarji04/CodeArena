@@ -19,11 +19,41 @@ export const getProblemById = async (req, res) => {
   }
 };
 
+export const getProblemByIdAdmin = async (req, res) => {
+  try {
+    const problem = await Problem.findById(req.params.id);
+    if (!problem) return res.status(404).json({ success: false, message: 'Problem not found' });
+    res.json({ success: true, problem });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 export const createProblem = async (req, res) => {
   try {
     const problem = await Problem.create(req.body);
     res.status(201).json({ success: true, problem });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+export const updateProblem = async (req, res) => {
+  try {
+    const problem = await Problem.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    if (!problem) return res.status(404).json({ success: false, message: 'Problem not found' });
+    res.json({ success: true, problem });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+export const deleteProblem = async (req, res) => {
+  try {
+    const problem = await Problem.findByIdAndDelete(req.params.id);
+    if (!problem) return res.status(404).json({ success: false, message: 'Problem not found' });
+    res.json({ success: true, message: 'Problem deleted' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };

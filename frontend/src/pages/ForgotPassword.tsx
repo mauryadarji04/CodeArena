@@ -24,7 +24,7 @@ export default function ForgotPassword() {
     e.preventDefault()
     setLoading(true)
     try {
-      await axios.post('http://localhost:3001/api/send-otp', {
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/send-otp`, {
         email: formData.email
       })
       setStep('otp')
@@ -40,7 +40,7 @@ export default function ForgotPassword() {
     e.preventDefault()
     setLoading(true)
     try {
-      await axios.post('http://localhost:3001/api/verify-otp', {
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/verify-otp`, {
         email: formData.email,
         otp: formData.otp
       })
@@ -61,7 +61,7 @@ export default function ForgotPassword() {
     }
     setLoading(true)
     try {
-      await axios.post('http://localhost:3001/api/reset-password', {
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/reset-password`, {
         email: formData.email,
         otp: formData.otp,
         newPassword: formData.newPassword

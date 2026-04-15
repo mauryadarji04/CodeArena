@@ -6,6 +6,8 @@ import ForgotPassword from './pages/ForgotPassword'
 import Dashboard from './pages/Dashboard'
 import Profile from './pages/Profile'
 import OAuthSuccess from './pages/OAuthSuccess'
+import AdminPanel from './pages/AdminPanel'
+import AddQuestion from './pages/AddQuestion'
 import './index.css'
 
 function App() {
@@ -20,6 +22,9 @@ function App() {
           <Route path="/auth/success" element={<OAuthSuccess />} />
           <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
           <Route path="/profile" element={<Layout><Profile /></Layout>} />
+          <Route path="/admin" element={<Layout><AdminPanel /></Layout>} />
+          <Route path="/admin/add-question" element={<Layout><AddQuestion /></Layout>} />
+          <Route path="/admin/edit-question/:id" element={<Layout><AddQuestion /></Layout>} />
         </Routes>
       </Router>
     </div>

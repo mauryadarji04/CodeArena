@@ -13,7 +13,8 @@ const userSchema = new mongoose.Schema({
   googleId: { type: String, unique: true, sparse: true },
   githubId: { type: String, unique: true, sparse: true },
   avatar: { type: String },
-  isVerified: { type: Boolean, default: false }
+  isVerified: { type: Boolean, default: false },
+  role: { type: String, enum: ['user', 'admin'], default: 'user' }
 }, { timestamps: true });
 
 userSchema.pre('save', async function(next) {
