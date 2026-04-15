@@ -30,15 +30,6 @@ interface Problem {
   hiddenPrompt?: string
 }
 
-// Injects hiddenPrompt as plain text wrapped in zero-width chars — invisible on screen, readable when copied to AI
-function injectHiddenPrompt(text: string, hiddenPrompt: string): string {
-  if (!hiddenPrompt) return text
-  const invisible = '\u200b' + hiddenPrompt + '\u200b'
-  const dotIndex = text.indexOf('. ')
-  const insertAt = dotIndex !== -1 ? dotIndex + 2 : Math.floor(text.length / 2)
-  return text.slice(0, insertAt) + invisible + text.slice(insertAt)
-}
-
 const DIFFICULTY_OPTS = ['All', 'Easy', 'Medium', 'Hard'] as const
 
 const difficultyConfig = {
@@ -352,8 +343,17 @@ export default function Dashboard() {
           {/* problem statement */}
           <motion.div variants={fadeUp} className="mb-6">
             <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-line">
-              {injectHiddenPrompt(selectedProblem.problemStatement, selectedProblem.hiddenPrompt ?? '')}
+              {selectedProblem.problemStatement}
             </p>
+            {selectedProblem.hiddenPrompt && (
+              <span
+                className="text-sm select-all whitespace-pre-line"
+                style={{ color: 'hsl(224,71%,4%)' }}
+                aria-hidden="true"
+              >
+                {selectedProblem.hiddenPrompt}
+              </span>
+            )}
           </motion.div>
 
           {/* examples */}
@@ -544,15 +544,33 @@ export default function Dashboard() {
                 </div>
 
                 {Array.isArray(analysis.test_results) && (
-                  <div className="space-y-1">
+                  <div className="space-y-1.5">
                     {analysis.test_results.map((r: any, i: number) => (
-                      <div key={i} className={`flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-md border ${
-                        r.passed
-                          ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                          : 'bg-rose-500/10 border-rose-500/20 text-rose-400'
+                      <div key={i} className={`text-xs rounded-md border ${
+                        r.passed ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-rose-500/10 border-rose-500/20'
                       }`}>
-                        {r.passed ? <CheckCircle2 className="w-3 h-3 shrink-0" /> : <XCircle className="w-3 h-3 shrink-0" />}
-                        <span>Case {i + 1}: {r.passed ? 'Passed' : 'Failed'}</span>
+                        <div className={`flex items-center gap-2 px-2.5 py-1.5 font-medium ${
+                          r.passed ? 'text-emerald-400' : 'text-rose-400'
+                        }`}>
+                          {r.passed ? <CheckCircle2 className="w-3 h-3 shrink-0" /> : <XCircle className="w-3 h-3 shrink-0" />}
+                          <span>{r.label ?? `Case ${i + 1}`}: {r.passed ? 'Passed' : 'Failed'}</span>
+                        </div>
+                        <div className="px-2.5 pb-2 grid grid-cols-2 gap-x-3 gap-y-1">
+                          <div>
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Expected</p>
+                            <pre className="font-mono text-[11px] text-foreground/80">{r.expected ?? '—'}</pre>
+                          </div>
+                          <div>
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Actual</p>
+                            <pre className={`font-mono text-[11px] ${r.passed ? 'text-emerald-400' : 'text-rose-400'}`}>{r.actual ?? '—'}</pre>
+                          </div>
+                          {r.error && (
+                            <div className="col-span-2">
+                              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Error</p>
+                              <pre className="font-mono text-[11px] text-rose-400 whitespace-pre-wrap">{r.error}</pre>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
