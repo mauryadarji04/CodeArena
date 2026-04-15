@@ -88,14 +88,20 @@ export const saveSubmission = async (req, res) => {
 
       // Normalize testcasepassed object → array
       const testCasePassed = mlResult.testcasepassed || {};
-      const testResultsArr = Object.entries(testCasePassed).map(([key, val], i) => ({
-        label:    key,
-        passed:   val?.status === 'passed',
-        expected: val?.expected,
-        actual:   val?.actual,
-        error:    val?.error,
-        isHidden: allTestCases[i]?.isHidden ?? false
-      }));
+      const normalize = s => String(s ?? '').replace(/\s+/g, '').toLowerCase();
+      const testResultsArr = Object.entries(testCasePassed).map(([key, val], i) => {
+        const statusPassed = val?.status === 'passed';
+        const comparePassed = normalize(val?.actual) === normalize(val?.expected);
+        const passed = statusPassed || comparePassed;
+        return {
+          label:    key,
+          passed,
+          expected: val?.expected,
+          actual:   val?.actual,
+          error:    val?.error,
+          isHidden: allTestCases[i]?.isHidden ?? false
+        };
+      });
 
       // Build and save SubmissionRecord
       const record = new SubmissionRecord({ userId, problemId, language, type });
