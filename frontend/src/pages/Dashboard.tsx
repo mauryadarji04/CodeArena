@@ -410,16 +410,21 @@ export default function Dashboard() {
           <div className="flex items-center gap-3">
             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Editor</span>
             <Separator orientation="vertical" className="h-4" />
-            <select
-              value={language}
-              onChange={e => handleLanguageChange(e.target.value)}
-              className="bg-muted/40 border border-border rounded-md px-2.5 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
-            >
-              <option value="cpp">C++</option>
-              <option value="java">Java</option>
-              <option value="python">Python</option>
-              <option value="javascript">JavaScript</option>
-            </select>
+            <div className="flex gap-1">
+              {(['cpp', 'python'] as const).map(lang => (
+                <motion.button
+                  key={lang} whileTap={{ scale: 0.93 }}
+                  onClick={() => handleLanguageChange(lang)}
+                  className={`px-2.5 py-0.5 rounded-full text-xs font-medium border transition-all ${
+                    language === lang
+                      ? 'bg-primary/20 text-primary border-primary/40'
+                      : 'bg-transparent text-muted-foreground border-border hover:border-muted-foreground/50'
+                  }`}
+                >
+                  {lang === 'cpp' ? 'C++' : 'Python'}
+                </motion.button>
+              ))}
+            </div>
           </div>
           <div className="flex gap-2">
             <Button
